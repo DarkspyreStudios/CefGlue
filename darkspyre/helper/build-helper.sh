@@ -9,8 +9,8 @@
 #   <output folder>  receives <rid>/darkspyre-cef-helper, the layout build-runtime.sh --helpers expects.
 #
 # The API version comes from CEF_API_VERSION in CefGlue.Interop.Gen/gen-cef3.sh, so the helper and CefGlue
-# select the same CEF API. Signing is the app build's job. Windows has no helper here: CEF 156 sandboxes
-# Windows subprocesses only through its bootstrap.exe and a client DLL.
+# select the same CEF API. Signing is the app build's job. Windows uses windows/build-client.cmd: CEF 156
+# sandboxes Windows only through its bootstrap executable and a client DLL.
 set -euo pipefail
 
 [ $# -eq 3 ] || { sed -n '2,13p' "$0" | sed 's/^# \{0,1\}//' >&2; exit 2; }

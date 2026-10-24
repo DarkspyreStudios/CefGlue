@@ -74,9 +74,21 @@ darkspyre/helper/build-helper.sh <rid> <cef distribution folder> <output folder>
 
 builds `<output folder>/<rid>/darkspyre-cef-helper`, the layout `build-runtime.sh --helpers` expects. macOS
 builds run on a Mac and Linux builds on a Linux host of the same architecture. Signing is the app build's
-job. Windows has no helper here: CEF 156 ships no static sandbox library for Windows and sandboxes Windows
-subprocesses only through its `bootstrap.exe` and a client DLL, so `build-runtime.sh --helpers` cannot
-produce a Windows release zip yet.
+job.
+
+Windows sandboxes only through CEF's bootstrap: CEF 156 ships no static sandbox library for Windows. The
+service executable is the distribution's `bootstrapc.exe` renamed `darkspyre-chromium-service.exe`, which loads
+`darkspyre-chromium-service.dll`, built from `darkspyre/helper/windows/client.c`. In a CEF subprocess (a `--type=`
+argument) the DLL loads `cef\libcef.dll` and calls `cef_execute_process` with the sandbox information; in the
+browser process it starts the .NET service (`Darkspyre.Chromium.Service.dll`) through `hostfxr` in the same
+process and appends `--darkspyre-sandbox-info=<address>` for `CefRuntime.Initialize`. From a Visual Studio
+developer prompt for the target architecture:
+
+```bat
+darkspyre\helper\windows\build-client.cmd <rid> <cef distribution folder> <output folder>
+```
+
+builds `<output folder>\<rid>\` with the DLL and the renamed executable.
 
 ## Versions and publication
 
