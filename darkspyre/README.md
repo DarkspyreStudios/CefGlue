@@ -46,7 +46,9 @@ darkspyre/build-runtime.sh <cefVersion> --helpers <dir>
 helpers, one subfolder per runtime identifier. `--no-helper` builds zips without helpers for local testing;
 their names end in `-nohelper` and they are never published. Output goes to `out/runtime/`.
 
-The script requires a clean working tree. It regenerates the bindings and stops if the committed ones
+The runtime is built on a Linux host (maelstrom): stripping the Linux `libcef.so` needs a Linux `strip`, and the
+other platforms' zips need nothing platform-specific. The script uses `zip`, `7z` or `python3` to write the
+zips, whichever is present. The script requires a clean working tree. It regenerates the bindings and stops if the committed ones
 differ from the generator's output. It builds `Xilium.CefGlue.dll` for `net11.0`, downloads the six CEF
 minimal distributions from cef-builds.spotifycdn.com (verifying each SHA-1 from CEF's index), and writes
 one zip per runtime identifier:

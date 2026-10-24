@@ -41,9 +41,31 @@ if [ -n "$helpers" ] && [ "$no_helper" = 1 ]; then echo "Give --helpers or --no-
 if [ -z "$helpers" ] && [ "$no_helper" = 0 ]; then echo "Give --helpers <dir>, or --no-helper for a local test build." >&2; exit 2; fi
 if [ -n "$helpers" ]; then helpers="$(cd "$helpers" && pwd)"; fi
 
-for tool in curl jq tar zip shasum dotnet git; do
+for tool in curl jq tar shasum dotnet git; do
     command -v "$tool" >/dev/null || { echo "Missing tool: $tool" >&2; exit 1; }
 done
+
+# Writes the zip of the current folder to $1, keeping file modes and symlinks. zip is preferred; 7z and
+# Python's zipfile serve hosts without it. Python follows symlinks, which only matters if a future CEF
+# distribution ships one (the 156 minimal distributions have none).
+zip_folder() {
+    if command -v zip >/dev/null; then
+        zip -qry -X "$1" .
+    elif command -v 7z >/dev/null; then
+        7z a -tzip -snl -bso0 -bsp0 "$1" .
+    elif command -v python3 >/dev/null; then
+        python3 -I -c 'import os, sys, zipfile
+with zipfile.ZipFile(sys.argv[1], "w", zipfile.ZIP_DEFLATED) as z:
+    for root, dirs, files in os.walk("."):
+        dirs.sort()
+        for name in sorted(files):
+            path = os.path.join(root, name)
+            z.write(path, os.path.relpath(path, "."))' "$1"
+    else
+        echo "Missing a zip tool: zip, 7z or python3." >&2
+        return 1
+    fi
+}
 
 # The Linux distributions ship libcef.so with debug symbols (1.4 GB for x64); the zip carries it stripped.
 elf_strip=""
@@ -51,7 +73,7 @@ for candidate in llvm-strip /opt/homebrew/opt/llvm/bin/llvm-strip /usr/local/opt
     if command -v "$candidate" >/dev/null; then elf_strip="$candidate"; break; fi
 done
 if [ -z "$elf_strip" ] && [ "$(uname -s)" = Linux ] && command -v strip >/dev/null; then elf_strip=strip; fi
-[ -n "$elf_strip" ] || { echo "Missing an ELF strip tool: install LLVM (brew install llvm) or run on Linux." >&2; exit 1; }
+[ -n "$elf_strip" ] || { echo "Missing an ELF strip tool: run on a Linux host (the runtime is built on maelstrom)." >&2; exit 1; }
 
 # CEF platform name and .NET runtime identifier, in pairs.
 platforms=(macosarm64 osx-arm64 macosx64 osx-x64 windows64 win-x64 windowsarm64 win-arm64 linux64 linux-x64 linuxarm64 linux-arm64)
@@ -145,7 +167,7 @@ while [ $i -lt ${#platforms[@]} ]; do
     [ "$no_helper" = 1 ] && suffix="-nohelper"
     zip_name="darkspyre-cef-$short_version-$rid$suffix.zip"
     rm -f "$out/$zip_name"
-    (cd "$work/stage" && zip -qry -X "$out/$zip_name" .)
+    (cd "$work/stage" && zip_folder "$out/$zip_name")
     sha256="$(shasum -a 256 "$out/$zip_name" | cut -d' ' -f1)"
     assets="$(jq --arg r "$rid" --arg f "$zip_name" --arg s "$sha256" '. + {($r): {file: $f, sha256: $s}}' <<<"$assets")"
     rm -rf "$work"
