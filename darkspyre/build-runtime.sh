@@ -77,7 +77,7 @@ echo "Building Xilium.CefGlue.dll"
 build="$out/cefglue"
 rm -rf "$build"
 dotnet build CefGlue/CefGlue.csproj --configuration Release -p:DotnetVersion=net11.0 -p:Version="$short_version" \
-    --output "$build" -nologo -v:quiet
+    --output "$build" -nologo -v:quiet -clp:ErrorsOnly
 [ -f "$build/Xilium.CefGlue.dll" ] || { echo "The build produced no Xilium.CefGlue.dll." >&2; exit 1; }
 
 downloads="$out/downloads"
