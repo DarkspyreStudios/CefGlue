@@ -11,7 +11,7 @@ namespace Xilium.CefGlue
         Block,
         Ask,
         SessionOnly,
-        DetectImportantContent,
+        DetectImportantContentDeprecated,
 
         NumValues
     }

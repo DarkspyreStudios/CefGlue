@@ -12,9 +12,13 @@ namespace Xilium.CefGlue
     /// </summary>
     public enum CefChromeToolbarButtonType
     {
-        Cast = 0,
-        Download,
-        SendTabToSelf,
-        SidePanel,
+        CastDeprecated = 0,
+        DownloadDeprecated = 1,
+        SendTabToSelfDeprecated = 2,
+        SidePanelDeprecated = 3,
+        Media = 4,
+        TabSearchDeprecated = 5,
+        BatterySaver = 6,
+        Avatar = 7,
     }
 }

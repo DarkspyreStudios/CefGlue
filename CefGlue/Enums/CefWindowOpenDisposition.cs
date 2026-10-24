@@ -73,6 +73,11 @@ namespace Xilium.CefGlue
         /// </summary>
         NewPictureInPicture,
 
-        MaxValue = NewPictureInPicture
+        /// <summary>
+        /// Opens a link in a split view alongside the current tab.
+        /// </summary>
+        NewSplitView,
+
+        MaxValue = NewSplitView
     }
 }

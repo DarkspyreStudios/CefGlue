@@ -36,5 +36,7 @@ namespace Xilium.CefGlue
         AltGrDown         = 1 << 12,
 
         IsRepeat          = 1 << 13,
+        PrecisionScrollingDelta = 1 << 14,
+        ScrollByPage      = 1 << 15,
     }
 }

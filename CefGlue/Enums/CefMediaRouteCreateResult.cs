@@ -17,9 +17,14 @@ namespace Xilium.CefGlue
         RouteNotFound = 3,
         SinkNotFound = 4,
         InvalidOrigin = 5,
+        OffTheRecordMismatchDeprecated = 6,
         NoSupportedProvider = 7,
         Cancelled = 8,
         RouteAlreadyExists = 9,
+        DesktopPickerFailed = 10,
         RouteAlreadyTerminated = 11,
+        RedundantRequest = 12,
+        UserNotAllowed = 13,
+        NotificationDisabled = 14,
     }
 }
