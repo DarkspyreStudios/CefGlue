@@ -18,6 +18,7 @@
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 #include <shellapi.h>
+#include <shlobj.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -97,8 +98,41 @@ static int run_subprocess(const wchar_t* dir, void* sandbox_info) {
     return exit_code < 0 ? 1 : exit_code;
 }
 
-// Finds hostfxr.dll: beside the executable for a self-contained service, else under DOTNET_ROOT or
-// %ProgramFiles%\dotnet at host\fxr\<highest version>\. Writes the .NET root used into root.
+#if defined(_M_ARM64)
+#define DOTNET_ARCH L"arm64"
+#else
+#define DOTNET_ARCH L"x64"
+#endif
+
+// Finds the installed .NET root the way the .NET apphost does, without relying on environment variables the
+// LocalServices launcher does not pass: DOTNET_ROOT when set (developer runs), else the InstallLocation the .NET
+// installer records in the 32-bit registry view, else the Program Files known folder's dotnet folder.
+static BOOL dotnet_root(wchar_t* base, DWORD size) {
+    DWORD found = GetEnvironmentVariableW(L"DOTNET_ROOT", base, size);
+    if (found > 0 && found < size) {
+        return TRUE;
+    }
+    DWORD bytes = size * sizeof(wchar_t);
+    if (RegGetValueW(HKEY_LOCAL_MACHINE, L"SOFTWARE\\dotnet\\Setup\\InstalledVersions\\" DOTNET_ARCH, L"InstallLocation",
+                     RRF_RT_REG_SZ | RRF_SUBKEY_WOW6432KEY, NULL, base, &bytes) == ERROR_SUCCESS && base[0] != L'\0') {
+        size_t length = wcslen(base);
+        if (length > 0 && base[length - 1] == L'\\') {
+            base[length - 1] = L'\0';
+        }
+        return TRUE;
+    }
+    PWSTR program_files = NULL;
+    if (SHGetKnownFolderPath(&FOLDERID_ProgramFiles, 0, NULL, &program_files) != S_OK) {
+        CoTaskMemFree(program_files);
+        return FALSE;
+    }
+    int written = swprintf(base, size, L"%ls\\dotnet", program_files);
+    CoTaskMemFree(program_files);
+    return written > 0;
+}
+
+// Finds hostfxr.dll: in the service folder for a self-contained service, else in the installed .NET root at
+// host\fxr\<highest version>\. Writes the .NET root used into root.
 static HMODULE load_hostfxr(const wchar_t* dir, wchar_t* root, size_t root_size) {
     wchar_t path[MAX_PATH];
     swprintf(path, MAX_PATH, L"%lshostfxr.dll", dir);
@@ -107,13 +141,8 @@ static HMODULE load_hostfxr(const wchar_t* dir, wchar_t* root, size_t root_size)
         return LoadLibraryW(path);
     }
     wchar_t base[MAX_PATH];
-    DWORD found = GetEnvironmentVariableW(L"DOTNET_ROOT", base, MAX_PATH);
-    if (found == 0 || found >= MAX_PATH) {
-        found = GetEnvironmentVariableW(L"ProgramFiles", base, MAX_PATH);
-        if (found == 0 || found >= MAX_PATH) {
-            return NULL;
-        }
-        wcscat_s(base, MAX_PATH, L"\\dotnet");
+    if (!dotnet_root(base, MAX_PATH)) {
+        return NULL;
     }
     wchar_t pattern[MAX_PATH];
     swprintf(pattern, MAX_PATH, L"%ls\\host\\fxr\\*", base);

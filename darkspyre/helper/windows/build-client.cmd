@@ -23,6 +23,6 @@ if not exist "%DIST%\include\cef_sandbox_win.h" (
 )
 if not exist "%OUT%" mkdir "%OUT%"
 cl /nologo /LD /O2 /W4 /WX /DCEF_API_VERSION=%CEF_API_VERSION% /I"%DIST%" "%~dp0client.c" ^
-  /Fe"%OUT%\darkspyre-chromium-service.dll" /Fo"%OUT%\\" /link shell32.lib || exit /b 1
+  /Fe"%OUT%\darkspyre-chromium-service.dll" /Fo"%OUT%\\" /link shell32.lib advapi32.lib ole32.lib || exit /b 1
 copy /y "%DIST%\Release\bootstrapc.exe" "%OUT%\darkspyre-chromium-service.exe" >nul || exit /b 1
 echo Built %OUT%
