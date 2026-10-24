@@ -60,6 +60,24 @@ one zip per runtime identifier:
 
 The runtime identifiers are `osx-arm64`, `osx-x64`, `win-x64`, `win-arm64`, `linux-x64` and `linux-arm64`.
 
+## The native helper
+
+CEF starts a helper program for its renderer, GPU and utility processes; the browser process is the .NET
+Chromium service. `darkspyre/helper/helper.c` is that helper for macOS and Linux. It loads CEF relative to
+its own executable, selects the same API version as CefGlue and calls `cef_execute_process`. On macOS it
+first initializes CEF's sandbox library (`libcef_sandbox.dylib` inside the framework), as CEF's own wrapper
+does.
+
+```bash
+darkspyre/helper/build-helper.sh <rid> <cef distribution folder> <output folder>
+```
+
+builds `<output folder>/<rid>/darkspyre-cef-helper`, the layout `build-runtime.sh --helpers` expects. macOS
+builds run on a Mac and Linux builds on a Linux host of the same architecture. Signing is the app build's
+job. Windows has no helper here: CEF 156 ships no static sandbox library for Windows and sandboxes Windows
+subprocesses only through its `bootstrap.exe` and a client DLL, so `build-runtime.sh --helpers` cannot
+produce a Windows release zip yet.
+
 ## Versions and publication
 
 A release is named `cef-<CEF version>-cg<7-character fork commit>`, such as `cef-156.0.14-cg3839390`. Its
