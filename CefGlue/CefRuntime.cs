@@ -124,11 +124,11 @@
                 }
             }
             
-            // get CEF_API_HASH_PLATFORM
+            // Select the API version these bindings were generated for, and get its CEF_API_HASH_PLATFORM.
             string actual;
             try
             {
-                var n_actual = libcef.api_hash(0);
+                var n_actual = libcef.api_hash(libcef.CEF_API_VERSION, 0);
                 actual = n_actual != null ? new string(n_actual) : null;
             }
             catch (EntryPointNotFoundException ex)
@@ -574,6 +574,7 @@
             {
                 var n_url = new cef_string_t(url_str, url != null ? url.Length : 0);
                 var n_parts = new cef_urlparts_t();
+                n_parts.size = (UIntPtr)sizeof(cef_urlparts_t);
 
                 var result = libcef.parse_url(&n_url, &n_parts) != 0;
 
@@ -793,84 +794,6 @@
 
                 libcef.string_clear(&n_resolvedUrl);
                 return result;
-            }
-        }
-
-        #endregion
-
-        #region cef_v8
-
-        /// <summary>
-        /// Register a new V8 extension with the specified JavaScript extension code and
-        /// handler. Functions implemented by the handler are prototyped using the
-        /// keyword 'native'. The calling of a native function is restricted to the scope
-        /// in which the prototype of the native function is defined. This function may
-        /// only be called on the render process main thread.
-        ///
-        /// Example JavaScript extension code:
-        /// <code>
-        ///   // create the 'example' global object if it doesn't already exist.
-        ///   if (!example)
-        ///     example = {};
-        ///   // create the 'example.test' global object if it doesn't already exist.
-        ///   if (!example.test)
-        ///     example.test = {};
-        ///   (function() {
-        ///     // Define the function 'example.test.myfunction'.
-        ///     example.test.myfunction = function() {
-        ///       // Call CefV8Handler::Execute() with the function name 'MyFunction'
-        ///       // and no arguments.
-        ///       native function MyFunction();
-        ///       return MyFunction();
-        ///     };
-        ///     // Define the getter function for parameter 'example.test.myparam'.
-        ///     example.test.__defineGetter__('myparam', function() {
-        ///       // Call CefV8Handler::Execute() with the function name 'GetMyParam'
-        ///       // and no arguments.
-        ///       native function GetMyParam();
-        ///       return GetMyParam();
-        ///     });
-        ///     // Define the setter function for parameter 'example.test.myparam'.
-        ///     example.test.__defineSetter__('myparam', function(b) {
-        ///       // Call CefV8Handler::Execute() with the function name 'SetMyParam'
-        ///       // and a single argument.
-        ///       native function SetMyParam();
-        ///       if(b) SetMyParam(b);
-        ///     });
-        ///
-        ///     // Extension definitions can also contain normal JavaScript variables
-        ///     // and functions.
-        ///     var myint = 0;
-        ///     example.test.increment = function() {
-        ///       myint += 1;
-        ///       return myint;
-        ///     };
-        ///   })();
-        /// </code>
-        /// Example usage in the page:
-        /// <code>
-        ///   // Call the function.
-        ///   example.test.myfunction();
-        ///   // Set the parameter.
-        ///   example.test.myparam = value;
-        ///   // Get the parameter.
-        ///   value = example.test.myparam;
-        ///   // Call another function.
-        ///   example.test.increment();
-        /// </code>
-        /// </summary>
-        public static bool RegisterExtension(string extensionName, string javascriptCode, CefV8Handler handler)
-        {
-            if (string.IsNullOrEmpty(extensionName)) throw new ArgumentNullException("extensionName");
-            if (string.IsNullOrEmpty(javascriptCode)) throw new ArgumentNullException("javascriptCode");
-
-            fixed (char* extensionName_str = extensionName)
-            fixed (char* javascriptCode_str = javascriptCode)
-            {
-                var n_extensionName = new cef_string_t(extensionName_str, extensionName.Length);
-                var n_javascriptCode = new cef_string_t(javascriptCode_str, javascriptCode.Length);
-
-                return libcef.register_extension(&n_extensionName, &n_javascriptCode, handler != null ? handler.ToNative() : null) != 0;
             }
         }
 

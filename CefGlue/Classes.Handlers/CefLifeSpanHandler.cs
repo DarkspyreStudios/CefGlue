@@ -13,7 +13,7 @@
     /// </summary>
     public abstract unsafe partial class CefLifeSpanHandler
     {
-        private int on_before_popup(cef_life_span_handler_t* self, cef_browser_t* browser, cef_frame_t* frame, cef_string_t* target_url, cef_string_t* target_frame_name, CefWindowOpenDisposition target_disposition, int user_gesture, cef_popup_features_t* popupFeatures, cef_window_info_t* windowInfo, cef_client_t** client, cef_browser_settings_t* settings, cef_dictionary_value_t** extra_info, int* no_javascript_access)
+        private int on_before_popup(cef_life_span_handler_t* self, cef_browser_t* browser, cef_frame_t* frame, int popup_id, cef_string_t* target_url, cef_string_t* target_frame_name, CefWindowOpenDisposition target_disposition, int user_gesture, cef_popup_features_t* popupFeatures, cef_window_info_t* windowInfo, cef_client_t** client, cef_browser_settings_t* settings, cef_dictionary_value_t** extra_info, int* no_javascript_access)
         {
             CheckSelf(self);
 
@@ -31,7 +31,7 @@
 
             var o_extraInfo = m_extraInfo;
             var o_client = m_client;
-            var result = OnBeforePopup(m_browser, m_frame, m_targetUrl, m_targetFrameName, target_disposition, m_userGesture, m_popupFeatures, m_windowInfo, ref m_client, m_settings, ref m_extraInfo, ref m_noJavascriptAccess);
+            var result = OnBeforePopup(m_browser, m_frame, popup_id, m_targetUrl, m_targetFrameName, target_disposition, m_userGesture, m_popupFeatures, m_windowInfo, ref m_client, m_settings, ref m_extraInfo, ref m_noJavascriptAccess);
 
             if ((object)o_client != m_client && m_client != null)
             {
@@ -55,7 +55,8 @@
         /// <summary>
         /// Called on the UI thread before a new popup browser is created. The
         /// |browser| and |frame| values represent the source of the popup request.
-        /// The |target_url| and |target_frame_name| values indicate where the popup
+        /// The |popup_id| value uniquely identifies the popup in the context of the
+        /// opener browser. The |target_url| and |target_frame_name| values indicate where the popup
         /// browser should navigate and may be empty if not specified with the
         /// request. The |target_disposition| value indicates where the user intended
         /// to open the popup (e.g. current tab, new tab, etc). The |user_gesture|
@@ -77,9 +78,31 @@
         /// information specific to the created popup browser that will be passed to
         /// CefRenderProcessHandler::OnBrowserCreated() in the render process.
         /// </summary>
-        protected virtual bool OnBeforePopup(CefBrowser browser, CefFrame frame, string targetUrl, string targetFrameName, CefWindowOpenDisposition targetDisposition, bool userGesture, CefPopupFeatures popupFeatures, CefWindowInfo windowInfo, ref CefClient client, CefBrowserSettings settings, ref CefDictionaryValue extraInfo, ref bool noJavascriptAccess)
+        protected virtual bool OnBeforePopup(CefBrowser browser, CefFrame frame, int popupId, string targetUrl, string targetFrameName, CefWindowOpenDisposition targetDisposition, bool userGesture, CefPopupFeatures popupFeatures, CefWindowInfo windowInfo, ref CefClient client, CefBrowserSettings settings, ref CefDictionaryValue extraInfo, ref bool noJavascriptAccess)
         {
             return false;
+        }
+
+
+        private void on_before_popup_aborted(cef_life_span_handler_t* self, cef_browser_t* browser, int popup_id)
+        {
+            CheckSelf(self);
+
+            var m_browser = CefBrowser.FromNative(browser);
+
+            OnBeforePopupAborted(m_browser, popup_id);
+        }
+
+        /// <summary>
+        /// Called on the UI thread if a new popup browser is aborted. This only
+        /// occurs if the popup is allowed in OnBeforePopup and creation fails before
+        /// OnAfterCreated is called for the new popup browser. The |browser| value is
+        /// the source of the popup request (opener browser). The |popup_id| value
+        /// uniquely identifies the popup in the context of the opener browser, and is
+        /// the same value that was passed to OnBeforePopup.
+        /// </summary>
+        protected virtual void OnBeforePopupAborted(CefBrowser browser, int popupId)
+        {
         }
 
 

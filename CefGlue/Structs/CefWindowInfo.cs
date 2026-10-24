@@ -145,6 +145,11 @@
         /// </summary>
         public abstract bool ExternalBeginFrameEnabled { get; set; }
 
+        /// <summary>
+        /// The runtime style for the browser. Windowless rendering always uses Alloy style.
+        /// </summary>
+        public abstract CefRuntimeStyle RuntimeStyle { get; set; }
+
         public void SetAsChild(IntPtr parentHandle, CefRectangle bounds)
         {
             ThrowIfDisposed();

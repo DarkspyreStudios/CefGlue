@@ -10,53 +10,64 @@ namespace Xilium.CefGlue.Interop
     
     [StructLayout(LayoutKind.Sequential, Pack = libcef.ALIGN)]
     [SuppressMessage("Microsoft.Design", "CA1049:TypesThatOwnNativeResourcesShouldBeDisposable")]
-    internal unsafe struct cef_get_extension_resource_callback_t
+    internal unsafe struct cef_v8backing_store_t
     {
         internal cef_base_ref_counted_t _base;
-        internal IntPtr _cont;
-        internal IntPtr _cancel;
+        internal IntPtr _data;
+        internal IntPtr _byte_length;
+        internal IntPtr _is_valid;
+        
+        // Create
+        [DllImport(libcef.DllName, EntryPoint = "cef_v8backing_store_create", CallingConvention = libcef.CEF_CALL)]
+        public static extern cef_v8backing_store_t* create(UIntPtr byte_length);
         
         [UnmanagedFunctionPointer(libcef.CEF_CALLBACK)]
         #if !DEBUG
         [SuppressUnmanagedCodeSecurity]
         #endif
-        private delegate void add_ref_delegate(cef_get_extension_resource_callback_t* self);
+        private delegate void add_ref_delegate(cef_v8backing_store_t* self);
         
         [UnmanagedFunctionPointer(libcef.CEF_CALLBACK)]
         #if !DEBUG
         [SuppressUnmanagedCodeSecurity]
         #endif
-        private delegate int release_delegate(cef_get_extension_resource_callback_t* self);
+        private delegate int release_delegate(cef_v8backing_store_t* self);
         
         [UnmanagedFunctionPointer(libcef.CEF_CALLBACK)]
         #if !DEBUG
         [SuppressUnmanagedCodeSecurity]
         #endif
-        private delegate int has_one_ref_delegate(cef_get_extension_resource_callback_t* self);
+        private delegate int has_one_ref_delegate(cef_v8backing_store_t* self);
         
         [UnmanagedFunctionPointer(libcef.CEF_CALLBACK)]
         #if !DEBUG
         [SuppressUnmanagedCodeSecurity]
         #endif
-        private delegate int has_at_least_one_ref_delegate(cef_get_extension_resource_callback_t* self);
+        private delegate int has_at_least_one_ref_delegate(cef_v8backing_store_t* self);
         
         [UnmanagedFunctionPointer(libcef.CEF_CALLBACK)]
         #if !DEBUG
         [SuppressUnmanagedCodeSecurity]
         #endif
-        private delegate void cont_delegate(cef_get_extension_resource_callback_t* self, cef_stream_reader_t* stream);
+        private delegate void* data_delegate(cef_v8backing_store_t* self);
         
         [UnmanagedFunctionPointer(libcef.CEF_CALLBACK)]
         #if !DEBUG
         [SuppressUnmanagedCodeSecurity]
         #endif
-        private delegate void cancel_delegate(cef_get_extension_resource_callback_t* self);
+        private delegate UIntPtr byte_length_delegate(cef_v8backing_store_t* self);
+        
+        [UnmanagedFunctionPointer(libcef.CEF_CALLBACK)]
+        #if !DEBUG
+        [SuppressUnmanagedCodeSecurity]
+        #endif
+        private delegate int is_valid_delegate(cef_v8backing_store_t* self);
         
         // AddRef
         private static IntPtr _p0;
         private static add_ref_delegate _d0;
         
-        public static void add_ref(cef_get_extension_resource_callback_t* self)
+        public static void add_ref(cef_v8backing_store_t* self)
         {
             add_ref_delegate d;
             var p = self->_base._add_ref;
@@ -73,7 +84,7 @@ namespace Xilium.CefGlue.Interop
         private static IntPtr _p1;
         private static release_delegate _d1;
         
-        public static int release(cef_get_extension_resource_callback_t* self)
+        public static int release(cef_v8backing_store_t* self)
         {
             release_delegate d;
             var p = self->_base._release;
@@ -90,7 +101,7 @@ namespace Xilium.CefGlue.Interop
         private static IntPtr _p2;
         private static has_one_ref_delegate _d2;
         
-        public static int has_one_ref(cef_get_extension_resource_callback_t* self)
+        public static int has_one_ref(cef_v8backing_store_t* self)
         {
             has_one_ref_delegate d;
             var p = self->_base._has_one_ref;
@@ -107,7 +118,7 @@ namespace Xilium.CefGlue.Interop
         private static IntPtr _p3;
         private static has_at_least_one_ref_delegate _d3;
         
-        public static int has_at_least_one_ref(cef_get_extension_resource_callback_t* self)
+        public static int has_at_least_one_ref(cef_v8backing_store_t* self)
         {
             has_at_least_one_ref_delegate d;
             var p = self->_base._has_at_least_one_ref;
@@ -120,38 +131,55 @@ namespace Xilium.CefGlue.Interop
             return d(self);
         }
         
-        // Continue
+        // Data
         private static IntPtr _p4;
-        private static cont_delegate _d4;
+        private static data_delegate _d4;
         
-        public static void cont(cef_get_extension_resource_callback_t* self, cef_stream_reader_t* stream)
+        public static void* data(cef_v8backing_store_t* self)
         {
-            cont_delegate d;
-            var p = self->_cont;
+            data_delegate d;
+            var p = self->_data;
             if (p == _p4) { d = _d4; }
             else
             {
-                d = (cont_delegate)Marshal.GetDelegateForFunctionPointer(p, typeof(cont_delegate));
+                d = (data_delegate)Marshal.GetDelegateForFunctionPointer(p, typeof(data_delegate));
                 if (_p4 == IntPtr.Zero) { _d4 = d; _p4 = p; }
             }
-            d(self, stream);
+            return d(self);
         }
         
-        // Cancel
+        // ByteLength
         private static IntPtr _p5;
-        private static cancel_delegate _d5;
+        private static byte_length_delegate _d5;
         
-        public static void cancel(cef_get_extension_resource_callback_t* self)
+        public static UIntPtr byte_length(cef_v8backing_store_t* self)
         {
-            cancel_delegate d;
-            var p = self->_cancel;
+            byte_length_delegate d;
+            var p = self->_byte_length;
             if (p == _p5) { d = _d5; }
             else
             {
-                d = (cancel_delegate)Marshal.GetDelegateForFunctionPointer(p, typeof(cancel_delegate));
+                d = (byte_length_delegate)Marshal.GetDelegateForFunctionPointer(p, typeof(byte_length_delegate));
                 if (_p5 == IntPtr.Zero) { _d5 = d; _p5 = p; }
             }
-            d(self);
+            return d(self);
+        }
+        
+        // IsValid
+        private static IntPtr _p6;
+        private static is_valid_delegate _d6;
+        
+        public static int is_valid(cef_v8backing_store_t* self)
+        {
+            is_valid_delegate d;
+            var p = self->_is_valid;
+            if (p == _p6) { d = _d6; }
+            else
+            {
+                d = (is_valid_delegate)Marshal.GetDelegateForFunctionPointer(p, typeof(is_valid_delegate));
+                if (_p6 == IntPtr.Zero) { _d6 = d; _p6 = p; }
+            }
+            return d(self);
         }
         
     }

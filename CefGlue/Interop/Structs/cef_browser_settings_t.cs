@@ -36,7 +36,8 @@ namespace Xilium.CefGlue.Interop
         public CefState text_area_resize;
         public CefState tab_to_links;
         public CefState local_storage;
-        public CefState databases;
+        // CEF 138 and later ignore this field; it keeps the layout.
+        public CefState databases_deprecated;
         public CefState webgl;
 
         public uint background_color;

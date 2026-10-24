@@ -215,7 +215,7 @@
         protected abstract void OnPaint(CefBrowser browser, CefPaintElementType type, CefRectangle[] dirtyRects, IntPtr buffer, int width, int height);
 
 
-        private void on_accelerated_paint(cef_render_handler_t* self, cef_browser_t* browser, CefPaintElementType type, UIntPtr dirtyRectsCount, cef_rect_t* dirtyRects, void* shared_handle)
+        private void on_accelerated_paint(cef_render_handler_t* self, cef_browser_t* browser, CefPaintElementType type, UIntPtr dirtyRectsCount, cef_rect_t* dirtyRects, cef_accelerated_paint_info_t* info)
         {
             CheckSelf(self);
 
@@ -236,19 +236,26 @@
                 rect++;
             }
 
-            OnAcceleratedPaint(m_browser, type, m_dirtyRects, (IntPtr)shared_handle);
+            OnAcceleratedPaint(m_browser, type, m_dirtyRects, CefAcceleratedPaintInfo.FromNative(info));
         }
 
         /// <summary>
         /// Called when an element has been rendered to the shared texture handle.
         /// |type| indicates whether the element is the view or the popup widget.
         /// |dirtyRects| contains the set of rectangles in pixel coordinates that need
-        /// to be repainted. |shared_handle| is the handle for a D3D11 Texture2D that
-        /// can be accessed via ID3D11Device using the OpenSharedResource method. This
-        /// method is only called when CefWindowInfo::SharedTextureEnabled is set to
-        /// true, and is currently only supported on Windows.
+        /// to be repainted. |info| contains the shared handle; on Windows it is a
+        /// HANDLE to a texture that can be opened with D3D11 OpenSharedResource1 or
+        /// D3D12 OpenSharedHandle, on macOS it is an IOSurface pointer that can be
+        /// opened with Metal or OpenGL, and on Linux it contains several planes, each
+        /// with an fd to the underlying system native buffer.
+        ///
+        /// The underlying implementation uses a pool to deliver frames, so the handle
+        /// may differ every frame. The handle's resource cannot be cached and cannot be
+        /// accessed outside of this callback; copy its contents to a texture the client
+        /// owns. This method is only called when CefWindowInfo::SharedTextureEnabled is
+        /// set to true.
         /// </summary>
-        protected abstract void OnAcceleratedPaint(CefBrowser browser, CefPaintElementType type, CefRectangle[] dirtyRects, IntPtr sharedHandle);
+        protected abstract void OnAcceleratedPaint(CefBrowser browser, CefPaintElementType type, CefRectangle[] dirtyRects, CefAcceleratedPaintInfo info);
 
 
         private void get_touch_handle_size(cef_render_handler_t* self, cef_browser_t* browser, CefHorizontalAlignment orientation, cef_size_t* size)

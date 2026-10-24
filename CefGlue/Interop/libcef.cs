@@ -28,8 +28,9 @@
         [DllImport(libcef.DllName, EntryPoint = "cef_version_info", CallingConvention = libcef.CEF_CALL)]
         public static extern int version_info(int entry);
 
+        // The first call selects the API version libcef serves; later calls cannot change it.
         [DllImport(libcef.DllName, EntryPoint = "cef_api_hash", CallingConvention = libcef.CEF_CALL)]
-        public static extern sbyte* api_hash(int entry);
+        public static extern sbyte* api_hash(int version, int entry);
 
         #endregion
     }

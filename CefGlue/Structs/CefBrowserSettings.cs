@@ -234,16 +234,6 @@
         }
 
         /// <summary>
-        /// Controls whether databases can be used. Also configurable using the
-        /// "disable-databases" command-line switch.
-        /// </summary>
-        public CefState Databases
-        {
-            get { return _self->databases; }
-            set { _self->databases = value; }
-        }
-
-        /// <summary>
         /// Controls whether WebGL can be used. Note that WebGL requires hardware
         /// support and may not work on all systems even when enabled. Also
         /// configurable using the "disable-webgl" command-line switch.

@@ -11,30 +11,30 @@ namespace Xilium.CefGlue
     using Xilium.CefGlue.Interop;
     
     // Role: PROXY
-    public sealed unsafe partial class CefGetExtensionResourceCallback : IDisposable
+    public sealed unsafe partial class CefTaskManager : IDisposable
     {
-        internal static CefGetExtensionResourceCallback FromNative(cef_get_extension_resource_callback_t* ptr)
+        internal static CefTaskManager FromNative(cef_task_manager_t* ptr)
         {
-            return new CefGetExtensionResourceCallback(ptr);
+            return new CefTaskManager(ptr);
         }
         
-        internal static CefGetExtensionResourceCallback FromNativeOrNull(cef_get_extension_resource_callback_t* ptr)
+        internal static CefTaskManager FromNativeOrNull(cef_task_manager_t* ptr)
         {
             if (ptr == null) return null;
-            return new CefGetExtensionResourceCallback(ptr);
+            return new CefTaskManager(ptr);
         }
         
-        private cef_get_extension_resource_callback_t* _self;
+        private cef_task_manager_t* _self;
         private int _disposed = 0;
         
-        private CefGetExtensionResourceCallback(cef_get_extension_resource_callback_t* ptr)
+        private CefTaskManager(cef_task_manager_t* ptr)
         {
             if (ptr == null) throw new ArgumentNullException("ptr");
             _self = ptr;
             CefObjectTracker.Track(this);
         }
         
-        ~CefGetExtensionResourceCallback()
+        ~CefTaskManager()
         {
             if (Interlocked.CompareExchange(ref _disposed, 1, 0) == 0)
             {
@@ -56,25 +56,25 @@ namespace Xilium.CefGlue
         
         internal void AddRef()
         {
-            cef_get_extension_resource_callback_t.add_ref(_self);
+            cef_task_manager_t.add_ref(_self);
         }
         
         internal bool Release()
         {
-            return cef_get_extension_resource_callback_t.release(_self) != 0;
+            return cef_task_manager_t.release(_self) != 0;
         }
         
         internal bool HasOneRef
         {
-            get { return cef_get_extension_resource_callback_t.has_one_ref(_self) != 0; }
+            get { return cef_task_manager_t.has_one_ref(_self) != 0; }
         }
         
         internal bool HasAtLeastOneRef
         {
-            get { return cef_get_extension_resource_callback_t.has_at_least_one_ref(_self) != 0; }
+            get { return cef_task_manager_t.has_at_least_one_ref(_self) != 0; }
         }
         
-        internal cef_get_extension_resource_callback_t* ToNative()
+        internal cef_task_manager_t* ToNative()
         {
             AddRef();
             return _self;

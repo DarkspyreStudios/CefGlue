@@ -83,6 +83,7 @@
         internal unsafe cef_urlparts_t ToNative()
         {
             var result = new cef_urlparts_t();
+            result.size = (UIntPtr)sizeof(cef_urlparts_t);
             cef_string_t.Copy(Spec, &result.spec);
             cef_string_t.Copy(Scheme, &result.scheme);
             cef_string_t.Copy(UserName, &result.username);

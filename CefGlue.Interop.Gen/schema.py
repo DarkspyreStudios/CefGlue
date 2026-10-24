@@ -84,6 +84,8 @@ c2cs_types = {
     'cef_audio_parameters_t': 'cef_audio_parameters_t',
     'cef_media_sink_device_info_t': 'cef_media_sink_device_info_t',
     'cef_touch_handle_state_t': 'cef_touch_handle_state_t',
+    'cef_accelerated_paint_info_t': 'cef_accelerated_paint_info_t',
+    'cef_task_info_t': 'cef_task_info_t',
     'cef_basetime_t': 'CefBaseTime',
     'cef_time_t': 'CefTime',
 
@@ -117,7 +119,6 @@ c2cs_enumtypes = {
     'cef_handler_statustype_t': 'CefStatusMessageType',
     'cef_storage_type_t': 'CefStorageType',
     'cef_thread_id_t': 'CefThreadId',
-    'cef_v8_accesscontrol_t': 'CefV8AccessControl',
     'cef_v8_propertyattribute_t': 'CefV8PropertyAttribute',
     'cef_value_type_t': 'CefValueType',
     'cef_xml_encoding_type_t': 'CefXmlEncoding',
@@ -182,7 +183,12 @@ c2cs_enumtypes = {
     'cef_content_setting_types_t': 'CefContentSettingType',
     'cef_content_setting_values_t': 'CefContentSettingValue',
     'cef_zoom_command_t': 'CefZoomCommand',
-    'cef_dom_form_control_type_t': 'CefDomFormControlType'
+    'cef_dom_form_control_type_t': 'CefDomFormControlType',
+    'cef_runtime_style_t': 'CefRuntimeStyle',
+    'cef_color_variant_t': 'CefColorVariant',
+    'cef_component_state_t': 'CefComponentState',
+    'cef_component_update_priority_t': 'CefComponentUpdatePriority',
+    'cef_component_update_error_t': 'CefComponentUpdateError',
     }
 
 c2cs_structtypes = { }

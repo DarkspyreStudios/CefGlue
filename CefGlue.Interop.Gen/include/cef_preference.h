@@ -41,6 +41,7 @@
 #include <vector>
 
 #include "include/cef_base.h"
+#include "include/cef_registration.h"
 #include "include/cef_values.h"
 
 ///
@@ -63,7 +64,48 @@ class CefPreferenceRegistrar : public CefBaseScoped {
   /*--cef()--*/
   virtual bool AddPreference(const CefString& name,
                              CefRefPtr<CefValue> default_value) = 0;
+
+#if CEF_API_ADDED(15600)
+  ///
+  /// Override the default value of a previously registered preference. |value|
+  /// is required and must have the same type as the registered default. Its
+  /// contents will be copied. User and managed values take precedence over
+  /// this default. Returns false and sets |error| if the preference is not
+  /// registered or |value| is invalid or has the wrong type. This method must
+  /// be called from within OnRegisterCustomPreferences.
+  ///
+  /*--cef(added=15600)--*/
+  virtual bool SetDefaultPreference(const CefString& name,
+                                    CefRefPtr<CefValue> value,
+                                    CefString& error) = 0;
+
+  ///
+  /// Returns a copy of the current default value for the preference with the
+  /// specified |name|, or NULL if the preference is not registered. This method
+  /// must be called from within OnRegisterCustomPreferences.
+  ///
+  /*--cef(added=15600)--*/
+  virtual CefRefPtr<CefValue> GetDefaultPreference(const CefString& name) = 0;
+#endif
 };
+
+#if CEF_API_ADDED(13401)
+///
+/// Implemented by the client to observe preference changes and registered via
+/// CefPreferenceManager::AddPreferenceObserver. The methods of this class will
+/// be called on the browser process UI thread.
+///
+/*--cef(source=client,added=13401)--*/
+class CefPreferenceObserver : public virtual CefBaseRefCounted {
+ public:
+  ///
+  /// Called when a preference has changed. The new value can be retrieved using
+  /// CefPreferenceManager::GetPreference.
+  ///
+  /*--cef()--*/
+  virtual void OnPreferenceChanged(const CefString& name) = 0;
+};
+#endif
 
 ///
 /// Manage access to preferences. Many built-in preferences are registered by
@@ -73,6 +115,36 @@ class CefPreferenceRegistrar : public CefBaseScoped {
 /*--cef(source=library,no_debugct_check)--*/
 class CefPreferenceManager : public virtual CefBaseRefCounted {
  public:
+#if CEF_API_ADDED(13401)
+  ///
+  /// Returns the current Chrome Variations configuration (combination of field
+  /// trials and chrome://flags) as equivalent command-line switches
+  /// (`--[enable|disable]-features=XXXX`, etc). These switches can be used to
+  /// apply the same configuration when launching a CEF-based application. See
+  /// https://developer.chrome.com/docs/web-platform/chrome-variations for
+  /// background and details. Note that field trial tests are disabled by
+  /// default in Official CEF builds (via the
+  /// `disable_fieldtrial_testing_config=true` GN flag). This method must be
+  /// called on the browser process UI thread.
+  ///
+  /*--cef(added=13401)--*/
+  static void GetChromeVariationsAsSwitches(std::vector<CefString>& switches);
+
+  ///
+  /// Returns the current Chrome Variations configuration (combination of field
+  /// trials and chrome://flags) as human-readable strings. This is the
+  /// human-readable equivalent of the "Active Variations" section of
+  /// chrome://version. See
+  /// https://developer.chrome.com/docs/web-platform/chrome-variations for
+  /// background and details. Note that field trial tests are disabled by
+  /// default in Official CEF builds (via the
+  /// `disable_fieldtrial_testing_config=true` GN flag). This method must be
+  /// called on the browser process UI thread.
+  ///
+  /*--cef(added=13401)--*/
+  static void GetChromeVariationsAsStrings(std::vector<CefString>& strings);
+#endif
+
   ///
   /// Returns the global preference manager object.
   ///
@@ -129,6 +201,21 @@ class CefPreferenceManager : public virtual CefBaseRefCounted {
   virtual bool SetPreference(const CefString& name,
                              CefRefPtr<CefValue> value,
                              CefString& error) = 0;
+
+#if CEF_API_ADDED(13401)
+  ///
+  /// Add an observer for preference changes. |name| is the name of the
+  /// preference to observe. If |name| is empty then all preferences will
+  /// be observed. Observing all preferences has performance consequences and
+  /// is not recommended outside of testing scenarios. The observer will remain
+  /// registered until the returned Registration object is destroyed. This
+  /// method must be called on the browser process UI thread.
+  ///
+  /*--cef(optional_param=name,added=13401)--*/
+  virtual CefRefPtr<CefRegistration> AddPreferenceObserver(
+      const CefString& name,
+      CefRefPtr<CefPreferenceObserver> observer) = 0;
+#endif
 };
 
 #endif  // CEF_INCLUDE_CEF_PREFERENCE_H_

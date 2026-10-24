@@ -40,3 +40,8 @@ CefGlue.Interop.Gen/Classes.Handlers.tmpl/
 CefGlue.Interop.Gen/Classes.Proxies.tmpl/
 **/.DS_Store
 *.nupkg
+
+# Darkspyre: caches dotnet writes when a build runs with its home inside the repository
+.local/
+.nuget/
+Library/
