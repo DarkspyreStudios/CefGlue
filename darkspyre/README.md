@@ -80,11 +80,14 @@ job.
 
 Windows sandboxes only through CEF's bootstrap: CEF 156 ships no static sandbox library for Windows. The
 service executable is the distribution's `bootstrapc.exe` renamed `darkspyre-chromium-service.exe`, which loads
-`darkspyre-chromium-service.dll`, built from `darkspyre/helper/windows/client.c`. In a CEF subprocess (a `--type=`
-argument) the DLL loads `cef\libcef.dll` and calls `cef_execute_process` with the sandbox information; in the
-browser process it starts the .NET service (`Darkspyre.Chromium.Service.dll`) through `hostfxr` in the same
-process and appends `--darkspyre-sandbox-info=<address>` for `CefRuntime.Initialize`. From a Visual Studio
-developer prompt for the target architecture:
+`darkspyre-chromium-service.dll`, built from `darkspyre/helper/windows/client.c`. Both go in the payload's `cef\`
+folder beside `libcef.dll`, because `bootstrapc.exe` links `chrome_elf.dll` at load time; the .NET service sits one
+folder up. In a CEF subprocess (a `--type=` argument) the DLL loads `libcef.dll` from its own folder and calls
+`cef_execute_process` with the sandbox information; in the browser process it starts the .NET service
+(`..\Darkspyre.Chromium.Service.dll`) through `hostfxr` in the same process and appends
+`--darkspyre-sandbox-info=<address>` for `CefRuntime.Initialize`. The service must leave `BrowserSubprocessPath`
+empty on Windows: CEF turns the sandbox off for any value and otherwise reuses the browser's executable. From a
+Visual Studio developer prompt for the target architecture:
 
 ```bat
 darkspyre\helper\windows\build-client.cmd <rid> <cef distribution folder> <output folder>

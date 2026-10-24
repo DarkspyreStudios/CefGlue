@@ -2,13 +2,14 @@
 //
 // CEF 156 sandboxes Windows processes only through its bootstrap executables. The Chromium service ships
 // bootstrapc.exe renamed darkspyre-chromium-service.exe; bootstrap loads the DLL of the same base name, this one,
-// and calls RunConsoleMain with the sandbox information it created. The same executable is CEF's browser process
-// and every CEF subprocess:
+// and calls RunConsoleMain with the sandbox information it created. bootstrapc.exe links chrome_elf.dll, so the
+// executable and this DLL sit in the payload's cef\ folder beside libcef.dll; the .NET service sits one folder up.
+// The same executable is CEF's browser process and every CEF subprocess:
 //
-//   - A CEF subprocess (an argument starting with --type=) loads cef\libcef.dll from the executable's folder
+//   - A CEF subprocess (an argument starting with --type=) loads libcef.dll from the executable's folder
 //     (LIBCEF below), checks the API hash and hands the process to cef_execute_process with the sandbox
 //     information.
-//   - The browser process starts the .NET service (Darkspyre.Chromium.Service.dll) in this process through
+//   - The browser process starts the .NET service (..\Darkspyre.Chromium.Service.dll) in this process through
 //     hostfxr, appending --darkspyre-sandbox-info=<address>. The service passes that address to
 //     CefRuntime.Initialize, which needs it in the process that calls CefInitialize.
 //
@@ -30,8 +31,9 @@
 #error CEF_API_VERSION must be defined, such as /DCEF_API_VERSION=15600
 #endif
 
-// libcef.dll's folder relative to the executable's folder: the payload keeps CEF in cef\ beside the service.
-#define LIBCEF L"cef\\libcef.dll"
+// Paths relative to the executable's folder (the payload's cef\ folder).
+#define LIBCEF L"libcef.dll"
+#define SERVICE_FOLDER L"..\\"
 #define SERVICE_ASSEMBLY L"Darkspyre.Chromium.Service.dll"
 
 typedef const char* (*api_hash_fn)(int version, int entry);
@@ -152,7 +154,9 @@ static HMODULE load_hostfxr(const wchar_t* dir, wchar_t* root, size_t root_size)
 
 static int run_service(const wchar_t* dir, int argc, wchar_t** argv, void* sandbox_info) {
     wchar_t root[MAX_PATH];
-    HMODULE fxr = load_hostfxr(dir, root, MAX_PATH);
+    wchar_t service_dir[MAX_PATH];
+    swprintf(service_dir, MAX_PATH, L"%ls%ls", dir, SERVICE_FOLDER);
+    HMODULE fxr = load_hostfxr(service_dir, root, MAX_PATH);
     if (!fxr) {
         fail(L"cannot find hostfxr.dll for .NET", NULL);
         return 1;
@@ -169,7 +173,7 @@ static int run_service(const wchar_t* dir, int argc, wchar_t** argv, void* sandb
     wchar_t assembly[MAX_PATH];
     wchar_t host[MAX_PATH];
     wchar_t sandbox_argument[64];
-    swprintf(assembly, MAX_PATH, L"%ls%ls", dir, SERVICE_ASSEMBLY);
+    swprintf(assembly, MAX_PATH, L"%ls%ls", service_dir, SERVICE_ASSEMBLY);
     GetModuleFileNameW(NULL, host, MAX_PATH);
     swprintf(sandbox_argument, 64, L"--darkspyre-sandbox-info=%llu", (unsigned long long)(ULONG_PTR)sandbox_info);
 
