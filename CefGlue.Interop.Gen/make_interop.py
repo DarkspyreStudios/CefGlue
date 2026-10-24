@@ -163,7 +163,9 @@ def make_struct_file(cls):
         'body': indent + ('\n'+indent).join(body)
       }
 
-def get_funcs(cls, base = True, inherited = True):
+# The class's methods at schema.api_version. A method added later, or experimental, is left out. A removed method keeps
+# its vtable slot as an unused field, so it is returned only with include_removed, marked 'removed'.
+def get_funcs(cls, base = True, inherited = True, include_removed = False):
     funcs = []
 
     classes = []
@@ -185,7 +187,15 @@ def get_funcs(cls, base = True, inherited = True):
         if current_cls is None:
             break
         for func in current_cls.get_virtual_funcs():
-            funcs.append( get_func_parts(func, i) )
+            state = schema.api_state(func)
+            if state == schema.API_ABSENT:
+                continue
+            if state == schema.API_REMOVED and not include_removed:
+                i += 1
+                continue
+            parts = get_func_parts(func, i)
+            parts['removed'] = state == schema.API_REMOVED
+            funcs.append( parts )
             i += 1
 
     return funcs
@@ -202,13 +212,15 @@ def make_struct_members(cls):
 
     static_funcs = []
     funcs = get_funcs(cls)
+    slots = get_funcs(cls, include_removed = True)
 
     delegate_visibility = "internal"
     if schema.is_proxy(cls):
         delegate_visibility = "private"
 
     for func in cls.get_static_funcs():
-        static_funcs.append( get_func_parts(func, 0) )
+        if schema.is_present(func):
+            static_funcs.append( get_func_parts(func, 0) )
 
     parentClassName = get_top_base_class_name(cls)
     if (parentClassName != "cef_base_ref_counted_t"
@@ -217,8 +229,12 @@ def make_struct_members(cls):
         raise Exception(message)
 
     result.append('internal {0} _base;'.format(parentClassName))
-    for func in funcs:
-        if not func['basefunc']:
+    for func in slots:
+        if func['basefunc']:
+            continue
+        if func.get('removed', False):
+            result.append('internal IntPtr %(field_name)s_removed;' % func)
+        else:
             result.append('internal IntPtr %(field_name)s;' % func)
     result.append('')
 
@@ -297,7 +313,8 @@ def make_libcef_file(header):
     result = []
 
     for func in header.get_funcs():
-        append_dllimport(result, get_func_parts(func, 0, True))
+        if schema.is_present(func):
+            append_dllimport(result, get_func_parts(func, 0, True))
 
     body = []
     body.append('using System;')
@@ -717,7 +734,8 @@ def make_proxy_impl_tmpl_body(cls):
     funcs = get_funcs(cls, False, False)
     static_funcs = []
     for func in cls.get_static_funcs():
-        static_funcs.append( get_func_parts(func, 0) )
+        if schema.is_present(func):
+            static_funcs.append( get_func_parts(func, 0) )
 
     result = []
 
@@ -755,7 +773,8 @@ def make_handler_impl_tmpl_body(cls):
     funcs = get_funcs(cls, False)
     static_funcs = []
     for func in cls.get_static_funcs():
-        static_funcs.append( get_func_parts(func, 0) )
+        if schema.is_present(func):
+            static_funcs.append( get_func_parts(func, 0) )
 
     result = []
 
@@ -803,7 +822,7 @@ def append_xmldoc(result, lines):
     return
 
 
-def make_version_cs(content, api_hash_content):
+def make_version_cs(content, api_versions_content):
     result = []
 
     result.append('public const string CEF_VERSION = %s;' % __get_version_constant(content, "CEF_VERSION"))
@@ -818,11 +837,13 @@ def make_version_cs(content, api_hash_content):
     result.append('public const int CHROME_VERSION_PATCH = %s;' % __get_version_constant(content, "CHROME_VERSION_PATCH"))
     result.append("");
 
-    result.append('public const string CEF_API_HASH_UNIVERSAL = %s;' % __get_version_constant(api_hash_content, "CEF_API_HASH_UNIVERSAL"))
+    # The bindings target one API version; cef_api_hash(CEF_API_VERSION, 0) selects it and returns its platform hash.
+    hash_name = 'CEF_API_HASH_%d' % schema.api_version
+    result.append('public const int CEF_API_VERSION = %d;' % schema.api_version)
     result.append("");
-    result.append('public const string CEF_API_HASH_PLATFORM_WIN = %s;' % __get_version_constant(api_hash_content, "CEF_API_HASH_PLATFORM", "WIN"))
-    result.append('public const string CEF_API_HASH_PLATFORM_MACOS = %s;' % __get_version_constant(api_hash_content, "CEF_API_HASH_PLATFORM", "MAC"))
-    result.append('public const string CEF_API_HASH_PLATFORM_LINUX = %s;' % __get_version_constant(api_hash_content, "CEF_API_HASH_PLATFORM", "LINUX"))
+    result.append('public const string CEF_API_HASH_PLATFORM_WIN = %s;' % __get_version_constant(api_versions_content, hash_name, "WIN"))
+    result.append('public const string CEF_API_HASH_PLATFORM_MACOS = %s;' % __get_version_constant(api_versions_content, hash_name, "MAC"))
+    result.append('public const string CEF_API_HASH_PLATFORM_LINUX = %s;' % __get_version_constant(api_versions_content, hash_name, "LINUX"))
 
     body = []
     body.append('using System;')
@@ -852,7 +873,7 @@ def __get_version_constant(content, name, platform = None):
             raise Exception('Could not find ' + name + ' constant.');
         value = m.group(1)
     else:
-        m = re.search(r'\n#e?l?if defined\(OS_' + platform + r'\)\n+#define\s+' + name + r'\s+(.*?)\n', content, re.DOTALL)
+        m = re.search(r'\n#e?l?if defined\(OS_' + platform + r'\)\n+#define\s+' + name + r'\s+(.*?)\n', content)
         if m is None:
             raise Exception('Could not find ' + name + ' constant.');
         value = m.group(1)
@@ -861,23 +882,23 @@ def __get_version_constant(content, name, platform = None):
 #
 # Main
 #
-def write_interop(header, filepath, backup, schema_name, cppheaderdir):
+def write_interop(header, filepath, backup, schema_name, cppheaderdir, api_version):
     writect = 0
 
     project_props_filename = "CefGlue.g.props"
     project_props_compile_items = []
 
-    schema.load(schema_name, header)
+    schema.load(schema_name, header, api_version)
 
     # validate: class role must be defined for all header classes
-    for cls in header.get_classes():
+    for cls in schema.get_classes(header):
         if not schema.is_handler(cls) and not schema.is_proxy(cls):
             msg = 'Class role must be defined. Class name %s.' % cls.get_name()
             sys.stdout.write('ERROR! %s\n' % msg)
             raise Exception(msg)
 
     # structs
-    for cls in header.get_classes():
+    for cls in schema.get_classes(header):
         content = make_struct_file(cls)
         writect += update_file(project_props_compile_items, filepath + '/' + schema.struct_path, cls.get_capi_name() + ".g.cs", content, backup)
 
@@ -885,7 +906,7 @@ def write_interop(header, filepath, backup, schema_name, cppheaderdir):
     writect += update_file(project_props_compile_items, filepath + '/' + schema.libcef_path, schema.libcef_filename, make_libcef_file(header), backup)
 
     # wrapper
-    for cls in header.get_classes():
+    for cls in schema.get_classes(header):
         content = make_wrapper_g_file(cls)
         writect += update_file(project_props_compile_items, filepath + '/' + schema.wrapper_g_path, schema.cpp2csname(cls.get_name()) + ".g.cs", content, backup)
 
@@ -897,15 +918,15 @@ def write_interop(header, filepath, backup, schema_name, cppheaderdir):
     writect += update_file(project_props_compile_items, filepath + '/' + schema.wrapper_g_path, schema.cpp2csname(userdatacls.get_name()) + ".g.cs", content, backup)
 
     # impl template
-    for cls in header.get_classes():
+    for cls in schema.get_classes(header):
         content = make_impl_tmpl_file(cls)
         tmplpath = schema.handler_tmpl_path
         if schema.is_proxy(cls):
             tmplpath = schema.proxy_tmpl_path
         writect += update_file(None, './' + tmplpath, schema.cpp2csname(cls.get_name()) + ".tmpl.g.cs", content, backup)
 
-    # process cef_version.h and cef_api_hash.h
-    content = make_version_cs(read_file(cppheaderdir + '/' + 'cef_version.h'), read_file(cppheaderdir + '/' + 'cef_api_hash.h'),)
+    # process cef_version.h and cef_api_versions.h
+    content = make_version_cs(read_file(cppheaderdir + '/' + 'cef_version.h'), read_file(cppheaderdir + '/' + 'cef_api_versions.h'))
     writect += update_file(project_props_compile_items, filepath + '/' + schema.libcef_path, schema.libcef_version_filename, content, backup)
 
     # make project props file

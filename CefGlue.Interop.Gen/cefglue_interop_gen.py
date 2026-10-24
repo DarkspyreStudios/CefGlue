@@ -24,6 +24,8 @@ parser.add_option('--cpp-header-dir', dest='cppheaderdir', metavar='DIR',
                   help='input directory for C++ header files [required]')
 parser.add_option('--cefglue-dir', dest='cefgluedir', metavar='DIR',
                   help='output directory for cefglue interop files')
+parser.add_option('--api-version', dest='apiversion', metavar='VERSION', type='int',
+                  help='CEF API version to generate for, such as 15600 [required]')
 parser.add_option('--no-backup',
                   action='store_true', dest='nobackup', default=False,
                   help='do not create a backup of modified files')
@@ -33,7 +35,7 @@ parser.add_option('-q', '--quiet',
 (options, args) = parser.parse_args()
 
 # required options: cppheader, cef1 or cef3
-if options.cppheaderdir is None or options.cefgluedir is None:
+if options.cppheaderdir is None or options.cefgluedir is None or options.apiversion is None:
     parser.print_help(sys.stdout)
     sys.exit()
 
@@ -46,7 +48,7 @@ if not path_exists(options.cppheaderdir):
 if not options.quiet:
     sys.stdout.write('Parsing C++ headers from '+options.cppheaderdir+'...\n')
 header = obj_header()
-excluded_files = ['cef_application_mac.h', 'cef_version.h']
+excluded_files = ['cef_application_mac.h', 'cef_version.h', 'cef_sandbox_mac.h', 'cef_sandbox_win.h']
 excluded_files += ['cef_thread.h', 'cef_waitable_event.h']
 header.add_directory(options.cppheaderdir, excluded_files)
 
@@ -56,7 +58,7 @@ if not options.cefgluedir is None:
     # output cefglue interop
     if not options.quiet:
         sys.stdout.write('Generating CefGlue interop files...\n')
-    writect += write_interop(header, options.cefgluedir, not options.nobackup, 'cef3', options.cppheaderdir)
+    writect += write_interop(header, options.cefgluedir, not options.nobackup, 'cef3', options.cppheaderdir, options.apiversion)
 
 if not options.quiet:
     sys.stdout.write('Done - Wrote '+str(writect)+' files.\n')

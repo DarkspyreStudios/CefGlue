@@ -191,12 +191,48 @@ cs_keywords = [ 'object', 'string', 'checked', 'event', 'params', 'delegate' ]
 
 classdef = { }
 
+# The CEF API version the bindings are generated for, such as 15600. CEF headers mark versioned classes and methods
+# with added=<version> or added=experimental, and removed=<version>.
+api_version = None
+
+API_PRESENT = 'present'
+API_REMOVED = 'removed'
+API_ABSENT = 'absent'
+
+def api_state(obj):
+    """ Whether a class or function exists at api_version: present, removed (a method keeps an unused vtable slot) or
+        absent (added later, or experimental). """
+    added = obj.get_attrib('added')
+    if added is not None and (not added.isdigit() or int(added) > api_version):
+        return API_ABSENT
+    removed = obj.get_attrib('removed')
+    if removed is not None and removed.isdigit() and int(removed) <= api_version:
+        return API_REMOVED
+    return API_PRESENT
+
+def is_present(obj):
+    return api_state(obj) == API_PRESENT
+
+def get_classes(header):
+    """ The header's classes that exist at api_version. """
+    return [cls for cls in header.get_classes() if is_present(cls)]
 
 
-def load(schema_name, header):
+def load(schema_name, header, version):
     import schema_cef3
     global classdef
+    global api_version
     classdef = schema_cef3.classdef
+    api_version = version
+
+    # A class the schema does not list takes its role from its header: CEF marks each class source=library (a proxy
+    # CefGlue calls) or source=client (a handler CefGlue implements). Listed classes keep their own entries.
+    for cls in header.get_classes():
+        if cls.get_name() not in classdef:
+            if cls.is_library_side():
+                classdef[cls.get_name()] = { 'role': ROLE_PROXY }
+            elif cls.is_client_side():
+                classdef[cls.get_name()] = { 'role': ROLE_HANDLER }
 
     # exec("from schema_%s import *" % schema_name) in globals()
 
