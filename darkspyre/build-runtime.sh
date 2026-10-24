@@ -155,8 +155,14 @@ while [ $i -lt ${#platforms[@]} ]; do
     fi
     if [ -n "$helpers" ]; then
         [ -d "$helpers/$rid" ] || { echo "No helper for $rid in $helpers." >&2; exit 1; }
-        mkdir -p "$work/stage/cef/helper"
-        cp -R "$helpers/$rid/." "$work/stage/cef/helper/"
+        case "$rid" in
+            # bootstrapc.exe, renamed darkspyre-chromium-service.exe, links chrome_elf.dll at load time, so it and
+            # its client DLL sit beside libcef.dll; the client DLL finds the .NET service one folder up.
+            win-*) cp "$helpers/$rid/darkspyre-chromium-service.exe" "$helpers/$rid/darkspyre-chromium-service.dll" \
+                       "$work/stage/cef/" ;;
+            *) mkdir -p "$work/stage/cef/helper"
+               cp -R "$helpers/$rid/." "$work/stage/cef/helper/" ;;
+        esac
     fi
     cp "$build/Xilium.CefGlue.dll" "$work/stage/cefglue/"
     cp "$dist/LICENSE.txt" "$work/stage/licenses/CEF-LICENSE.txt"
