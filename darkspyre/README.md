@@ -53,7 +53,7 @@ one zip per runtime identifier:
 
 | Path in the zip | Contents |
 | --- | --- |
-| `cef/` | The distribution's `Release/` and `Resources/` files, without import libraries and debug symbols |
+| `cef/` | The distribution's `Release/` and `Resources/` files, without import libraries and debug symbols. On Linux, `libcef.so` is stripped and `chrome-sandbox` is left out: the browser uses user namespaces, never the setuid sandbox |
 | `cef/helper/` | The native sandboxed helper for that runtime identifier |
 | `cefglue/Xilium.CefGlue.dll` | The bindings built from this commit |
 | `licenses/` | `CEF-LICENSE.txt`, `CREDITS.html` (Chromium) and `CefGlue-LICENSE` |

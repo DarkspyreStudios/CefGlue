@@ -45,6 +45,14 @@ for tool in curl jq tar zip shasum dotnet git; do
     command -v "$tool" >/dev/null || { echo "Missing tool: $tool" >&2; exit 1; }
 done
 
+# The Linux distributions ship libcef.so with debug symbols (1.4 GB for x64); the zip carries it stripped.
+elf_strip=""
+for candidate in llvm-strip /opt/homebrew/opt/llvm/bin/llvm-strip /usr/local/opt/llvm/bin/llvm-strip; do
+    if command -v "$candidate" >/dev/null; then elf_strip="$candidate"; break; fi
+done
+if [ -z "$elf_strip" ] && [ "$(uname -s)" = Linux ] && command -v strip >/dev/null; then elf_strip=strip; fi
+[ -n "$elf_strip" ] || { echo "Missing an ELF strip tool: install LLVM (brew install llvm) or run on Linux." >&2; exit 1; }
+
 # CEF platform name and .NET runtime identifier, in pairs.
 platforms=(macosarm64 osx-arm64 macosx64 osx-x64 windows64 win-x64 windowsarm64 win-arm64 linux64 linux-x64 linuxarm64 linux-arm64)
 
@@ -116,6 +124,12 @@ while [ $i -lt ${#platforms[@]} ]; do
     (cd "$dist/Release" && find . -type f ! -name '*.lib' ! -name '*.pdb' -print0 | cpio -0pdm --quiet "$work/stage/cef")
     if [ -d "$dist/Resources" ]; then
         (cd "$dist/Resources" && find . -print0 | cpio -0pdm --quiet "$work/stage/cef")
+    fi
+    if [ -f "$work/stage/cef/libcef.so" ]; then
+        "$elf_strip" --strip-unneeded "$work/stage/cef/libcef.so"
+        # The browser never uses the setuid sandbox; Linux sandboxing uses user namespaces (an AppArmor
+        # profile where the distribution restricts them).
+        rm -f "$work/stage/cef/chrome-sandbox"
     fi
     if [ -n "$helpers" ]; then
         [ -d "$helpers/$rid" ] || { echo "No helper for $rid in $helpers." >&2; exit 1; }
