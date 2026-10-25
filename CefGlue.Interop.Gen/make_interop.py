@@ -445,7 +445,6 @@ def make_proxy_g_body(cls):
       result.append(privateOrProtected + ' int _disposed = 0;')
       result.append('')
 
-    isRefCounted = cls.get_parent_capi_name() == "cef_base_ref_counted_t"
     isScoped = cls.get_parent_capi_name() == "cef_base_scoped_t"
 
     # ctor
